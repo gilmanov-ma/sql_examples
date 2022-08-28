@@ -8,17 +8,21 @@ WITH get_id AS (
               ),
 
 get_first_event AS(
-              SELECT get_id.user_id AS event_user_id, MIN(DATE_TRUNC('month', event_time)::date) date_start
+              SELECT get_id.user_id AS event_user_id, 
+                    MIN(DATE_TRUNC('month', event_time)::date) date_start
               FROM get_id JOIN tools_shop.events AS events ON get_id.user_id = events.user_id
               GROUP BY get_id.user_id
               ),
 get_cohorts AS (
-              SELECT date_start, DATE_TRUNC('month', event_time)::date AS date_event, COUNT(DISTINCT user_id) number_users
+              SELECT date_start, 
+                     DATE_TRUNC('month', event_time)::date AS date_event, 
+                     COUNT(DISTINCT user_id) number_users
               FROM tools_shop.events events JOIN get_first_event ON events.user_id = get_first_event.event_user_id
               GROUP BY date_start, DATE_TRUNC('month', event_time)::date
               ), 
 get_lag AS  (
-              SELECT *, LAG(number_users) OVER (PARTITION BY date_start ORDER BY date_event) AS previous_month
+              SELECT *, 
+                    LAG(number_users) OVER (PARTITION BY date_start ORDER BY date_event) AS previous_month
               FROM get_cohorts
               )
 
