@@ -1,0 +1,28 @@
+# Отобразите лидеров каждой группы — пользователей, которые набрали максимальное число просмотров в своей группе. 
+# Выведите поля с идентификатором пользователя, группой и количеством просмотров. 
+# Отсортируйте таблицу по убыванию просмотров, а затем по возрастанию значения идентификатора.
+
+SELECT id, 
+       views, 
+       group_users
+FROM 
+(
+  SELECT id, 
+         views, 
+         group_users, 
+         MAX(views) OVER (PARTITION BY group_users) AS max_views
+  FROM (
+        SELECT id, 
+               views,
+              CASE
+        WHEN views < 100 THEN 3
+        WHEN views >= 100 AND views < 350 THEN 2
+        WHEN views >= 350 THEN 1
+        END AS group_users
+    
+        FROM stackoverflow.users
+        WHERE stackoverflow.users.location LIKE '%United States%'  AND views <> 0 
+    ) AS query_in
+    ) AS query_ib2
+WHERE views = max_views
+ORDER BY views DESC, id
