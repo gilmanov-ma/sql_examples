@@ -1,0 +1,41 @@
+# Составьте рейтинг месяцев 2020 года с точки зрения количества продаж (quantity) по каждому из тарифов. Чем больше подписок тарифа P было продано в месяц M, тем выше место M в рейтинге по тарифу P:
+
+WITH get_rank_silver(year, month, quantity, silver)
+AS(
+SELECT year, 
+       month,
+       quantity, 
+       rank() OVER w AS silver 
+FROM sales
+WHERE year = 2020 AND plan = 'silver' 
+WINDOW w AS (ORDER BY quantity DESC)
+ORDER BY month),
+
+get_rank_gold(year, month, quantity, gold)
+AS(
+SELECT year, 
+       month, 
+       quantity, 
+       rank() OVER w AS gold 
+FROM sales
+WHERE year = 2020 AND plan = 'gold' 
+WINDOW w AS (ORDER BY quantity DESC)
+ORDER BY month),
+
+get_rank_platinum(year, month, quantity, platinum)
+AS(
+SELECT 
+    year, 
+    month, 
+    quantity, 
+    rank() OVER w AS platinum 
+FROM sales
+WHERE year = 2020 AND plan = 'platinum' 
+WINDOW w AS (ORDER BY quantity DESC)
+ORDER BY month)
+
+SELECT get_rank_silver.year, 
+      get_rank_silver.month, 
+      silver, gold, platinum
+FROM get_rank_silver JOIN get_rank_gold ON get_rank_silver.month = get_rank_gold.month
+                     JOIN get_rank_platinum ON get_rank_silver.month = get_rank_platinum.month
