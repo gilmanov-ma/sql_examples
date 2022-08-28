@@ -1,0 +1,80 @@
+# Выделить группы обучающихся по способу прохождения шагов:
+
+# I группа - это те пользователи, которые после верной попытки решения шага делают неверную;
+# II группа - это те пользователи, которые делают больше одной верной попытки для одного шага;
+# III группа - это те пользователи, которые не смогли решить задание какого-то шага.
+# Вывести группу (I, II, III), имя пользователя, количество шагов, которые пользователь выполнил по соответствующему способу. 
+# Столбцы назвать Группа, Студент, Количество_шагов. 
+# Отсортировать информацию по возрастанию номеров групп, потом по убыванию количества шагов и, наконец, по имени студента в алфавитном порядке.
+
+WITH number_1(category, student_name, Количество_шагов)
+AS
+(WITH get_1(student_name, step_id, result, prev_result)
+AS
+(
+SELECT student_name, step_id, result,
+LAG(result) OVER (PARTITION BY student_name, step_id order by submission_time) AS prev_result
+FROM step_student INNER JOIN student USING(student_id)
+)
+SELECT 'I', student_name, COUNT(step_id)
+FROM get_1
+WHERE result = 'wrong' AND prev_result = 'correct'
+GROUP BY student_name
+ ),
+
+number_2(category, student_name, Количество_шагов)
+AS
+(
+WITH get_2(student_name, step_id)
+AS
+(
+SELECT student_name, step_id
+FROM step_student INNER JOIN student USING(student_id)
+WHERE result = 'correct'
+GROUP BY student_name, step_id
+HAVING  COUNT(step_id) >= 2 
+)
+SELECT 'II', student_name, COUNT(step_id) AS Количество_шагов
+FROM get_2
+GROUP BY student_name
+),
+
+number_3(category, student_name, Количество_шагов)
+AS
+
+(WITH get_correct(student_name_c, step_id_c, result_c)
+AS
+(
+SELECT student_name, step_id, result
+FROM step_student INNER JOIN student USING(student_id)
+WHERE result = 'correct'
+), 
+get_wrong(student_name_w, step_id_w, result_w)
+AS
+(
+SELECT student_name, step_id, result
+FROM step_student INNER JOIN student USING(student_id)
+WHERE result = 'wrong'
+),
+get_count_3(student_name, step)
+AS
+(
+SELECT student_name_w, step_id_w
+FROM get_wrong LEFT JOIN get_correct ON get_correct.student_name_c = get_wrong.student_name_w AND get_correct.step_id_c = get_wrong.step_id_w
+WHERE result_c IS NULL
+GROUP BY student_name_w, step_id_w
+)
+SELECT 'III', student_name, COUNT(step) AS Количество_шагов
+FROM get_count_3
+GROUP BY student_name
+)
+
+SELECT category AS Группа, student_name AS Студент, Количество_шагов
+FROM number_1
+UNION
+SELECT category AS Группа, student_name AS Студент, Количество_шагов
+FROM number_2
+UNION
+SELECT category AS Группа, student_name AS Студент, Количество_шагов
+FROM number_3
+ORDER BY LENGTH(Группа), Количество_шагов DESC, Студент
